@@ -1,14 +1,15 @@
 package com.duoc.backend;
+
 import com.duoc.backend.User;
 import com.duoc.backend.JWTAuthenticationConfig;
-
+import com.duoc.backend.LoginRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
 
 @RestController
 public class LoginController {
@@ -19,23 +20,19 @@ public class LoginController {
     @Autowired
     private MyUserDetailsService userDetailsService;
 
-    @PostMapping("login")
-    public String login(
-            @RequestParam("user") String username,
-            @RequestParam("encryptedPass") String encryptedPass) {
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest) {
+        try {
+            final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
 
-        /**
-        * En el ejemplo no se realiza la correcta validación del usuario
-        */
+            if (!userDetails.getPassword().equals(loginRequest.getPassword())) {
+                return ResponseEntity.badRequest().body("Invalid credentials");
+            }
 
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-        if (!userDetails.getPassword().equals(encryptedPass)) {
-            throw new RuntimeException("Invalid login");
+            String token = jwtAuthenticationConfig.getJWTToken(loginRequest.getUsername());
+            return ResponseEntity.ok(token);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Login failed: " + e.getMessage());
         }
-
-        String token = jwtAuthenticationConfig.getJWTToken(username);
-        return token;
     }
-
 }

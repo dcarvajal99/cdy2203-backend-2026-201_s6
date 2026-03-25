@@ -1,0 +1,23 @@
+services:
+  mysql-cdy2203:
+    image: mysql/mysql-server:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: .
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql-cdy2203
+    environment:
+      # Sobreescribimos la URL de Spring para que use el nombre del servicio 'mysql-db'
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-cdy2203:3306/mydatabase
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: password
+      
