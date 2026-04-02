@@ -92,6 +92,10 @@ Especificación en formato YAML. Compatible con la mayoría de herramientas.
 | GET | /patients | Sí | Listar todos los pacientes |
 | POST | /patients | Sí | Crear nuevo paciente |
 | GET | /patients/{id} | Sí | Obtener paciente por ID |
+| GET | /invoices | Sí | Listar facturas |
+| GET | /invoices/{id} | Sí | Obtener factura por ID |
+| GET | /invoices/appointment/{appointmentId} | Sí | Obtener factura por visita |
+| POST | /invoices/appointments/{appointmentId} | Sí | Generar factura por visita |
 
 ---
 
@@ -210,6 +214,30 @@ curl -X POST http://localhost:8080/pets \
 }
 ```
 
+### Invoice (Factura)
+```json
+{
+  "id": 1,
+  "appointmentId": 10,
+  "issueDate": "2026-03-28",
+  "vatRate": 0.19,
+  "subtotal": 43000,
+  "vatAmount": 8170,
+  "total": 51170,
+  "notes": "Paciente estable. Control en 10 dias.",
+  "items": [
+    {
+      "id": 1,
+      "type": "SERVICE",
+      "description": "Consulta general",
+      "quantity": 1,
+      "unitPrice": 25000,
+      "lineTotal": 25000
+    }
+  ]
+}
+```
+
 ---
 
 ## 📞 Soporte
@@ -221,6 +249,6 @@ Para dudas sobre la API:
 
 ---
 
-Generado: 2026-03-26
+Generado: 2026-03-28
 Versión API: 1.0.0
 Proyecto: DUOC UC - CDY2203

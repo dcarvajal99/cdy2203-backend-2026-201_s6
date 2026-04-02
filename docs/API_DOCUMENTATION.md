@@ -1,6 +1,6 @@
 # Documentación de API - Pet Adoption System
 
-Documentación técnica de los servicios disponibles en la API de gestión de mascotas y pacientes.
+Documentación técnica de los servicios disponibles en la API de gestión de mascotas, pacientes y facturas por visita.
 
 ## Información General
 
@@ -16,8 +16,9 @@ Documentación técnica de los servicios disponibles en la API de gestión de ma
 1. [Autenticación](#autenticación)
 2. [Mascotas (Pets)](#mascotas-pets)
 3. [Pacientes (Patients)](#pacientes-patients)
-4. [Códigos de Respuesta](#códigos-de-respuesta)
-5. [Ejemplos de Uso](#ejemplos-de-uso)
+4. [Facturas (Invoices)](#facturas-invoices)
+5. [Códigos de Respuesta](#códigos-de-respuesta)
+6. [Ejemplos de Uso](#ejemplos-de-uso)
 
 ---
 
@@ -409,6 +410,140 @@ Obtiene la información de un paciente específico.
 
 ---
 
+## Facturas (Invoices)
+
+Todos los endpoints de facturación son privados y requieren token JWT.
+
+### POST /invoices/appointments/{appointmentId}
+Genera una factura detallada para una visita, incluyendo servicios, medicamentos, cargos adicionales, subtotal, IVA y total.
+
+**Acceso**: Protegido (requiere JWT)
+
+**Headers Requeridos**:
+- `Authorization: Bearer <token>`
+- `Content-Type: application/json`
+
+**Path Parameters**:
+- `appointmentId` (integer): ID de la visita
+
+**Request Body**:
+```json
+{
+  "issueDate": "2026-03-28",
+  "vatRate": 0.19,
+  "notes": "Paciente estable. Control en 10 dias.",
+  "items": [
+    {
+      "type": "SERVICE",
+      "description": "Consulta general",
+      "quantity": 1,
+      "unitPrice": 25000
+    },
+    {
+      "type": "MEDICATION",
+      "description": "Antibiotico",
+      "quantity": 2,
+      "unitPrice": 7500
+    },
+    {
+      "type": "ADDITIONAL_CHARGE",
+      "description": "Insumos clinicos",
+      "quantity": 1,
+      "unitPrice": 3000
+    }
+  ]
+}
+```
+
+**Response** (201 Created):
+```json
+{
+  "id": 1,
+  "appointmentId": 10,
+  "issueDate": "2026-03-28",
+  "vatRate": 0.19,
+  "subtotal": 43000,
+  "vatAmount": 8170,
+  "total": 51170,
+  "notes": "Paciente estable. Control en 10 dias.",
+  "items": [
+    {
+      "id": 1,
+      "type": "SERVICE",
+      "description": "Consulta general",
+      "quantity": 1,
+      "unitPrice": 25000,
+      "lineTotal": 25000
+    }
+  ]
+}
+```
+
+**Response** (409 Conflict): Ya existe una factura para esa visita
+
+---
+
+### GET /invoices
+Obtiene la lista de facturas emitidas.
+
+**Acceso**: Protegido (requiere JWT)
+
+**Headers Requeridos**:
+- `Authorization: Bearer <token>`
+
+**Response** (200 OK):
+```json
+[
+  {
+    "id": 1,
+    "appointmentId": 10,
+    "issueDate": "2026-03-28",
+    "vatRate": 0.19,
+    "subtotal": 43000,
+    "vatAmount": 8170,
+    "total": 51170,
+    "notes": "Paciente estable. Control en 10 dias.",
+    "items": []
+  }
+]
+```
+
+---
+
+### GET /invoices/{id}
+Obtiene una factura por su identificador.
+
+**Acceso**: Protegido (requiere JWT)
+
+**Headers Requeridos**:
+- `Authorization: Bearer <token>`
+
+**Path Parameters**:
+- `id` (integer): ID de la factura
+
+**Response** (200 OK): Factura encontrada
+
+**Response** (404 Not Found): Factura no encontrada
+
+---
+
+### GET /invoices/appointment/{appointmentId}
+Obtiene la factura asociada a una visita.
+
+**Acceso**: Protegido (requiere JWT)
+
+**Headers Requeridos**:
+- `Authorization: Bearer <token>`
+
+**Path Parameters**:
+- `appointmentId` (integer): ID de la visita
+
+**Response** (200 OK): Factura encontrada
+
+**Response** (404 Not Found): Visita o factura no encontrada
+
+---
+
 ## Códigos de Respuesta
 
 | Código | Descripción |
@@ -417,6 +552,7 @@ Obtiene la información de un paciente específico.
 | 201 | Created - Recurso creado exitosamente |
 | 400 | Bad Request - Datos inválidos o incompletos |
 | 404 | Not Found - Recurso no encontrado |
+| 409 | Conflict - Recurso en conflicto (ej: factura ya existe) |
 | 500 | Internal Server Error - Error en el servidor |
 
 ---
@@ -473,6 +609,37 @@ curl -X PUT http://localhost:8080/pets/1 \
   -d '{"status": "adopted"}'
 ```
 
+**6. Generar factura para una visita**:
+```bash
+curl -X POST http://localhost:8080/invoices/appointments/10 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vatRate": 0.19,
+    "notes": "Paciente estable. Control en 10 dias.",
+    "items": [
+      {
+        "type": "SERVICE",
+        "description": "Consulta general",
+        "quantity": 1,
+        "unitPrice": 25000
+      },
+      {
+        "type": "MEDICATION",
+        "description": "Antibiotico",
+        "quantity": 2,
+        "unitPrice": 7500
+      }
+    ]
+  }'
+```
+
+**7. Consultar factura por visita**:
+```bash
+curl -X GET http://localhost:8080/invoices/appointment/10 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
 ---
 
 ## Acceso a Documentación Interactiva
@@ -487,7 +654,7 @@ Una vez que el servidor está corriendo, puedes acceder a:
 
 ## Notas Importantes
 
-1. **Autenticación**: Los endpoints de creación, actualización y eliminación requieren un token JWT válido.
+1. **Autenticación**: Los endpoints de creación, actualización, eliminación y facturación requieren un token JWT válido.
 2. **Búsqueda pública**: Los usuarios pueden buscar mascotas sin autenticación.
 3. **Status de mascotas**: Por default es "available". Puedes cambiar a "adopted" cuando sea adoptada.
 4. **Fotos**: Se aceptan arrays de URLs. Puedes tener múltiples fotos por mascota.
@@ -497,4 +664,4 @@ Una vez que el servidor está corriendo, puedes acceder a:
 
 Generado para: DUOC UC - CDY2203
 Versión: 1.0.0
-Fecha: 2026-03-26
+Fecha: 2026-03-28

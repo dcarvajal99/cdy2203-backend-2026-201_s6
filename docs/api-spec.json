@@ -4,8 +4,8 @@
   "baseUrl": "http://localhost:8080",
   "productionUrl": "https://api.example.com",
   "authentication": "JWT Bearer Token",
-  "description": "API RESTful para gestión de mascotas disponibles para adopción y pacientes",
-  "lastUpdated": "2026-03-26",
+  "description": "API RESTful para gestión de mascotas disponibles para adopción, pacientes y facturación de visitas",
+  "lastUpdated": "2026-03-28",
 
   "endpoints": [
     {
@@ -398,6 +398,157 @@
           "description": "Paciente no encontrado"
         }
       }
+    },
+
+    {
+      "id": "invoices_list",
+      "method": "GET",
+      "path": "/invoices",
+      "summary": "Obtener todas las facturas",
+      "description": "Recupera la lista completa de facturas emitidas",
+      "protected": true,
+      "tags": ["Facturas"],
+      "parameters": [],
+      "responses": {
+        "200": {
+          "description": "Lista de facturas obtenida exitosamente",
+          "contentType": "application/json",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/Invoice"
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "id": "invoices_get_by_id",
+      "method": "GET",
+      "path": "/invoices/{id}",
+      "summary": "Obtener factura por ID",
+      "description": "Recupera una factura específica por su identificador",
+      "protected": true,
+      "tags": ["Facturas"],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "description": "ID de la factura",
+          "example": 1
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Factura encontrada",
+          "contentType": "application/json",
+          "schema": {
+            "$ref": "#/components/Invoice"
+          }
+        },
+        "404": {
+          "description": "Factura no encontrada"
+        }
+      }
+    },
+
+    {
+      "id": "invoices_get_by_appointment",
+      "method": "GET",
+      "path": "/invoices/appointment/{appointmentId}",
+      "summary": "Obtener factura por visita",
+      "description": "Recupera la factura asociada a una visita específica",
+      "protected": true,
+      "tags": ["Facturas"],
+      "parameters": [
+        {
+          "name": "appointmentId",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "description": "ID de la visita",
+          "example": 10
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Factura encontrada para la visita",
+          "contentType": "application/json",
+          "schema": {
+            "$ref": "#/components/Invoice"
+          }
+        },
+        "404": {
+          "description": "Visita o factura no encontrada"
+        }
+      }
+    },
+
+    {
+      "id": "invoices_create_for_appointment",
+      "method": "POST",
+      "path": "/invoices/appointments/{appointmentId}",
+      "summary": "Generar factura de visita",
+      "description": "Genera una factura detallada para una visita con servicios, medicamentos y cargos adicionales",
+      "protected": true,
+      "tags": ["Facturas"],
+      "parameters": [
+        {
+          "name": "appointmentId",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "description": "ID de la visita a facturar",
+          "example": 10
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+            "issueDate": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-03-28"
+            },
+            "vatRate": {
+              "type": "number",
+              "example": 0.19
+            },
+            "notes": {
+              "type": "string",
+              "example": "Paciente estable. Control en 10 dias."
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/InvoiceLineItem"
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Factura generada exitosamente",
+          "contentType": "application/json",
+          "schema": {
+            "$ref": "#/components/Invoice"
+          }
+        },
+        "400": {
+          "description": "Datos inválidos o visita inexistente"
+        },
+        "409": {
+          "description": "Ya existe factura para la visita"
+        }
+      }
     }
   ],
 
@@ -494,6 +645,100 @@
           "type": "string",
           "description": "Dueño del paciente",
           "example": "Juan Pérez"
+        }
+      }
+    },
+
+    "InvoiceLineItemType": {
+      "type": "string",
+      "description": "Tipo de detalle de factura",
+      "enum": ["SERVICE", "MEDICATION", "ADDITIONAL_CHARGE"]
+    },
+
+    "InvoiceLineItem": {
+      "type": "object",
+      "required": ["type", "description", "quantity", "unitPrice"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Identificador del detalle",
+          "example": 1
+        },
+        "type": {
+          "$ref": "#/components/InvoiceLineItemType"
+        },
+        "description": {
+          "type": "string",
+          "description": "Descripción del servicio, medicamento o cargo",
+          "example": "Consulta general"
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Cantidad aplicada",
+          "example": 1
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Precio unitario",
+          "example": 25000
+        },
+        "lineTotal": {
+          "type": "number",
+          "description": "Subtotal de la línea",
+          "example": 25000
+        }
+      }
+    },
+
+    "Invoice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Identificador de la factura",
+          "example": 1
+        },
+        "appointmentId": {
+          "type": "integer",
+          "description": "Identificador de la visita facturada",
+          "example": 10
+        },
+        "issueDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Fecha de emisión",
+          "example": "2026-03-28"
+        },
+        "vatRate": {
+          "type": "number",
+          "description": "Tasa de IVA aplicada",
+          "example": 0.19
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "Subtotal sin IVA",
+          "example": 43000
+        },
+        "vatAmount": {
+          "type": "number",
+          "description": "Monto de IVA",
+          "example": 8170
+        },
+        "total": {
+          "type": "number",
+          "description": "Total final",
+          "example": 51170
+        },
+        "notes": {
+          "type": "string",
+          "description": "Observaciones adicionales",
+          "example": "Paciente estable. Control en 10 dias."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/InvoiceLineItem"
+          }
         }
       }
     }

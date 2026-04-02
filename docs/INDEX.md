@@ -121,6 +121,12 @@ Una vez que el servidor esté ejecutándose:
 - `GET /patients/{id}` - Obtener por ID (protegido)
 - `POST /patients` - Crear (protegido)
 
+### 🧾 Facturas
+- `GET /invoices` - Listar facturas (protegido)
+- `GET /invoices/{id}` - Obtener por ID (protegido)
+- `GET /invoices/appointment/{appointmentId}` - Obtener por visita (protegido)
+- `POST /invoices/appointments/{appointmentId}` - Generar factura por visita (protegido)
+
 ---
 
 ## 🎯 Para el Frontend
